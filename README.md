@@ -37,7 +37,34 @@
 
 ---
 
-## 🚀 Quick Start
+## 🌐 Live Deployment (Free — Render + Vercel)
+
+Deploy the backend to **Render** and the frontend to **Vercel** — both free tiers, no credit card required.
+
+### Step 1 — Deploy the backend to Render
+
+1. Go to [render.com](https://render.com) → **New → Web Service**
+2. Connect your GitHub account and select **JAgbanwa/oldworldcolored**
+3. Render auto-detects `render.yaml` — confirm the service is named `oldworldcolored-api`
+4. Click **Deploy** and wait for the build to finish (~5–10 min; model weights are baked in during build)
+5. Copy your service URL → `https://oldworldcolored-api.onrender.com`
+
+### Step 2 — Deploy the frontend to Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **Add New → Project**
+2. Import **JAgbanwa/oldworldcolored** from GitHub
+3. Set **Root Directory** to `frontend`
+4. Under **Environment Variables**, add:
+   ```
+   VITE_API_URL = https://oldworldcolored-api.onrender.com
+   ```
+5. Click **Deploy** — your app is live at `https://oldworldcolored.vercel.app` (or similar)
+
+> **Note:** Render's free tier spins down after 15 min of inactivity. The first request after idle may take ~30 seconds to wake up.
+
+---
+
+## 🚀 Quick Start (Local)
 
 ### Option A — Docker Compose (recommended)
 

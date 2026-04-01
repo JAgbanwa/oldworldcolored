@@ -18,6 +18,11 @@ COPY . .
 
 RUN chmod +x start.sh
 
+# Download model weights at build time so they are baked into the image.
+# If the download fails (e.g. network issues in CI), the startup script
+# will retry automatically.
+RUN python download_models.py || echo "[warn] Model download deferred to startup."
+
 EXPOSE 8000
 
 CMD ["./start.sh"]
