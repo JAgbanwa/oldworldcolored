@@ -239,64 +239,65 @@ export default function App() {
             >
               <UploadZone mode={mode} onFile={handleFile} disabled={isProcessing} />
 
+              {/* Super-resolution toggle — always visible */}
+              <div className="mt-5 flex flex-col items-center gap-2">
+                <button
+                  onClick={() => setSuperRes((v) => !v)}
+                  disabled={isProcessing}
+                  className={`
+                    flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium
+                    transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+                    ${
+                      superRes
+                        ? "border-amber-500/60 bg-amber-500/10 text-amber-400 shadow-sm shadow-amber-900/20"
+                        : "dark:border-zinc-700 border-zinc-300 dark:text-zinc-400 text-zinc-500 dark:hover:border-zinc-500 hover:border-zinc-400 dark:hover:text-zinc-200 hover:text-zinc-800"
+                    }
+                  `}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Super Resolution (4×)
+                  {superRes ? (
+                    <span className="ml-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                      ON
+                    </span>
+                  ) : (
+                    <span className="ml-1 rounded-full dark:bg-zinc-800 bg-zinc-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider dark:text-zinc-500 text-zinc-400">
+                      OFF
+                    </span>
+                  )}
+                </button>
+
+                {superRes && (
+                  <p className="text-center text-xs dark:text-zinc-500 text-zinc-400">
+                    Output will be 4× larger using Real-ESRGAN deep learning upscaling.
+                  </p>
+                )}
+                {superRes && mode === "video" && (
+                  <p className="text-center text-xs text-amber-600 dark:text-amber-500">
+                    ⚠ Super Resolution on video is very slow — each frame is upscaled 4×. Best for short clips.
+                  </p>
+                )}
+              </div>
+
               {file && (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-5 space-y-4"
+                  className="mt-4 flex justify-center"
                 >
-                  {/* Super-resolution toggle */}
-                  <div className="flex items-center justify-center">
-                    <button
-                      onClick={() => setSuperRes((v) => !v)}
-                      disabled={isProcessing}
-                      className={`
-                        flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium
-                        transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-                        ${
-                          superRes
-                            ? "border-amber-500/60 bg-amber-500/10 text-amber-400 shadow-sm shadow-amber-900/20"
-                            : "dark:border-zinc-700 border-zinc-300 dark:text-zinc-400 text-zinc-500 dark:hover:border-zinc-500 hover:border-zinc-400 dark:hover:text-zinc-200 hover:text-zinc-800"
-                        }
-                      `}
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Super Resolution (4×)
-                      {superRes && (
-                        <span className="ml-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400">
-                          ON
-                        </span>
-                      )}
-                    </button>
-                  </div>
-
-                  {superRes && mode === "video" && (
-                    <p className="text-center text-xs text-amber-600 dark:text-amber-500">
-                      ⚠ Super Resolution on video is very slow — each frame is upscaled 4×. Best for short clips.
-                    </p>
-                  )}
-
-                  {superRes && (
-                    <p className="text-center text-xs dark:text-zinc-500 text-zinc-400">
-                      Output will be 4× larger in each dimension using Real-ESRGAN deep learning upscaling.
-                    </p>
-                  )}
-
-                  <div className="flex justify-center">
-                    <button
-                      onClick={colorize}
-                      disabled={isProcessing}
-                      className="
-                        flex items-center gap-2 rounded-xl bg-gradient-to-r from-sepia-600 to-gold-600
-                        px-8 py-3 font-semibold text-white shadow-lg shadow-amber-900/30
-                        transition hover:from-sepia-500 hover:to-gold-500 hover:shadow-amber-900/50
-                        active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
-                      "
-                    >
-                      <Wand2 className="h-5 w-5" />
-                      {superRes ? "Colorize & Enhance" : `Colorize ${mode === "image" ? "Photo" : "Video"}`}
-                    </button>
-                  </div>
+                  <button
+                    onClick={colorize}
+                    disabled={isProcessing}
+                    className="
+                      flex items-center gap-2 rounded-xl bg-gradient-to-r from-sepia-600 to-gold-600
+                      px-8 py-3 font-semibold text-white shadow-lg shadow-amber-900/30
+                      transition hover:from-sepia-500 hover:to-gold-500 hover:shadow-amber-900/50
+                      active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                    "
+                  >
+                    <Wand2 className="h-5 w-5" />
+                    {superRes ? "Colorize & Enhance" : `Colorize ${mode === "image" ? "Photo" : "Video"}`}
+                  </button>
                 </motion.div>
               )}
             </motion.div>
