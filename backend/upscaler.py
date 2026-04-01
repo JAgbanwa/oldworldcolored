@@ -1,11 +1,12 @@
 """
-Real-ESRGAN 4× Super-Resolution
-================================
-Uses the official RRDBNet architecture and pre-trained weights by Xintao Wang
-et al. (ESRGAN / Real-ESRGAN, 2021).
+Real-ESRGAN 4× Super-Resolution (fast 6-block variant)
+=======================================================
+Uses the official RRDBNet architecture with only 6 RRDB blocks
+(RealESRGAN_x4plus_anime_6B.pth, ~17 MB) instead of the heavy 23-block model.
+This is ~4× faster on CPU while still producing high-quality results.
 
-Weights (~67 MB) are lazily downloaded from the author's GitHub releases and
-cached at ~/.cache/oldworldcolored/RealESRGAN_x4plus.pth.
+Weights are downloaded from the author's GitHub releases on first use and
+cached at ~/.cache/oldworldcolored/.
 
 Reference: https://github.com/xinntao/Real-ESRGAN
 """
@@ -14,6 +15,7 @@ import math
 import os
 import urllib.request
 from pathlib import Path
+from typing import Callable, Optional
 
 import cv2
 import numpy as np
@@ -26,10 +28,10 @@ import torch.nn.functional as F
 # ---------------------------------------------------------------------------
 _MODEL_URL = (
     "https://github.com/xinntao/Real-ESRGAN/releases/download/"
-    "v0.1.0/RealESRGAN_x4plus.pth"
+    "v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth"
 )
 _CACHE_DIR = Path.home() / ".cache" / "oldworldcolored"
-_CACHE_PATH = _CACHE_DIR / "RealESRGAN_x4plus.pth"
+_CACHE_PATH = _CACHE_DIR / "RealESRGAN_x4plus_anime_6B.pth"
 
 
 def _ensure_weights() -> Path:
@@ -89,14 +91,15 @@ class _RRDB(nn.Module):
 
 
 class _RRDBNet(nn.Module):
-    """23-block RRDBNet — architecture used by RealESRGAN_x4plus.pth."""
+    """6-block RRDBNet — architecture used by RealESRGAN_x4plus_anime_6B.pth.
+    Same structure as the 23-block model, just fewer RRDB blocks → much faster."""
 
     def __init__(
         self,
         num_in_ch: int = 3,
         num_out_ch: int = 3,
         num_feat: int = 64,
-        num_block: int = 23,
+        num_block: int = 6,
         num_grow_ch: int = 32,
     ):
         super().__init__()
@@ -128,54 +131,70 @@ class Upscaler:
     """
     4× super-resolution for BGR uint8 images / video frames.
 
-    Tile-based inference (256 px tiles + 16 px overlap) keeps peak memory
-    bounded so even large images / 1080 p frames work on CPU.
+    Uses 512 px tiles (larger than before → fewer passes) with 16 px overlap.
+    An optional progress_cb(pct: int) is called after each tile so callers
+    can stream per-tile progress to the user.
     """
 
     SCALE = 4
-    _TILE = 256   # tile size in pixels (input space)
-    _PAD = 16     # overlap / padding per side
+    _TILE = 512   # larger tiles → fewer forward passes
+    _PAD = 16
 
     def __init__(self) -> None:
         weights_path = _ensure_weights()
-        self._model = _RRDBNet().eval()
+        self._model = _RRDBNet(num_block=6).eval()
         state = torch.load(weights_path, map_location="cpu")
-        # Official checkpoint wraps weights under 'params_ema' or 'params'
         if isinstance(state, dict):
             state = state.get("params_ema") or state.get("params") or state
         self._model.load_state_dict(state, strict=True)
-        print("[upscaler] Real-ESRGAN 4× loaded ✓")
+        # Use all available CPU cores for BLAS / convolution ops
+        torch.set_num_threads(os.cpu_count() or 4)
+        print("[upscaler] RealESRGAN 6-block (fast) loaded ✓")
 
-    def upscale(self, bgr: np.ndarray) -> np.ndarray:
-        """Upscale a BGR uint8 ndarray by 4×. Returns BGR uint8."""
+    def upscale(
+        self,
+        bgr: np.ndarray,
+        progress_cb: Optional[Callable[[int], None]] = None,
+    ) -> np.ndarray:
+        """Upscale a BGR uint8 ndarray by 4×. Returns BGR uint8.
+        progress_cb receives 0-100 as tiles complete."""
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
         img_t = torch.from_numpy(rgb).permute(2, 0, 1).unsqueeze(0)  # 1,3,H,W
         _, _, h, w = img_t.shape
-        out_t = self._tile_inference(img_t, h, w)
+        out_t = self._tile_inference(img_t, h, w, progress_cb)
         out_np = out_t.squeeze(0).permute(1, 2, 0).clamp(0, 1).numpy()
         out_bgr = cv2.cvtColor((out_np * 255).round().astype(np.uint8), cv2.COLOR_RGB2BGR)
         return out_bgr
 
-    @torch.no_grad()
-    def _tile_inference(self, img: torch.Tensor, h: int, w: int) -> torch.Tensor:
+    @torch.inference_mode()
+    def _tile_inference(
+        self,
+        img: torch.Tensor,
+        h: int,
+        w: int,
+        progress_cb: Optional[Callable[[int], None]] = None,
+    ) -> torch.Tensor:
         tile = self._TILE
         pad = self._PAD
         scale = self.SCALE
 
         # Small image: single forward pass
         if h <= tile and w <= tile:
+            if progress_cb:
+                progress_cb(100)
             return self._model(img)
 
         out = torch.zeros(1, 3, h * scale, w * scale)
         rows = math.ceil(h / tile)
         cols = math.ceil(w / tile)
+        total = rows * cols
+        done = 0
 
         for row in range(rows):
             for col in range(cols):
                 x1, y1 = col * tile, row * tile
                 x2, y2 = min(x1 + tile, w), min(y1 + tile, h)
 
-                # Padded patch boundaries
                 x1p = max(0, x1 - pad)
                 y1p = max(0, y1 - pad)
                 x2p = min(w, x2 + pad)
@@ -184,7 +203,6 @@ class Upscaler:
                 patch = img[:, :, y1p:y2p, x1p:x2p]
                 sr = self._model(patch)
 
-                # Trim padding from SR output
                 tx1 = (x1 - x1p) * scale
                 ty1 = (y1 - y1p) * scale
                 tx2 = tx1 + (x2 - x1) * scale
@@ -193,5 +211,9 @@ class Upscaler:
                 out[:, :, y1 * scale : y2 * scale, x1 * scale : x2 * scale] = (
                     sr[:, :, ty1:ty2, tx1:tx2]
                 )
+
+                done += 1
+                if progress_cb:
+                    progress_cb(int(done / total * 100))
 
         return out

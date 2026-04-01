@@ -81,43 +81,21 @@ export default function App() {
     formData.append("file", file);
     formData.append("enhance", superRes ? "true" : "false");
 
+    const endpoint = mode === "image" ? "/api/colorize/image" : "/api/colorize/video";
+
     try {
-      if (mode === "image") {
-        // ─── Image: single request, returns download_url immediately
-        setProgress({ status: "processing", progress: 0, message: "Uploading…" });
-        const { data } = await axios.post(`${API}/api/colorize/image`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-          onUploadProgress: (e) => {
-            const pct = Math.round((e.loaded / e.total) * 50); // 0–50 during upload
-            setProgress({ status: "processing", progress: pct, message: "Uploading…" });
-          },
-        });
+      setProgress({ status: "queued", progress: 0, message: "Uploading…" });
+      const { data } = await axios.post(`${API}${endpoint}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (e) => {
+          const pct = e.total ? Math.round((e.loaded / e.total) * 30) : 0;
+          setProgress({ status: "queued", progress: pct, message: "Uploading…" });
+        },
+      });
 
-        setProgress({ status: "processing", progress: 70, message: "Applying colorization…" });
-
-        // Fetch colorized image as blob for comparison slider
-        const imgResp = await axios.get(`${API}${data.download_url}`, {
-          responseType: "blob",
-        });
-        const blobUrl = URL.createObjectURL(imgResp.data);
-        setColorizedUrl(blobUrl);
-        setProgress({ status: "completed", progress: 100, message: "Colorization complete!" });
-        setPhase("done");
-      } else {
-        // ─── Video: submit job, then stream SSE progress
-        setProgress({ status: "queued", progress: 0, message: "Uploading video…" });
-        const { data } = await axios.post(`${API}/api/colorize/video`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-          onUploadProgress: (e) => {
-            const pct = e.total ? Math.round((e.loaded / e.total) * 30) : 0;
-            setProgress({ status: "queued", progress: pct, message: "Uploading…" });
-          },
-        });
-
-        setTaskId(data.task_id);
-        setPhase("processing");
-        startSSE(data.task_id);
-      }
+      setTaskId(data.task_id);
+      setPhase("processing");
+      startSSE(data.task_id);
     } catch (err) {
       const msg =
         err.response?.data?.detail ??
