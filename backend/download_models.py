@@ -1,7 +1,7 @@
 """
 Pre-download model weights so the first request isn't slow.
-  • Colorization model  – Zhang et al. ECCV 2016  (~56 MB, AWS S3)
-  • Super-resolution    – Real-ESRGAN x4plus       (~67 MB, GitHub releases)
+  • Colorization model  – Zhang et al. ECCV 2016        (~56 MB, AWS S3)
+  • Super-resolution    – Real-ESRGAN x4plus 6-block    (~17 MB, GitHub releases)
 """
 import sys
 from colorizer import Colorizer

@@ -82,6 +82,7 @@ async def health():
 # ── Image colorization ────────────────────────────────────────────────────────
 @app.post("/api/colorize/image")
 async def colorize_image(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     enhance: bool = Form(False),
 ):
@@ -96,35 +97,14 @@ async def colorize_image(
 
     task_id = str(uuid.uuid4())
     suffix = Path(file.filename or "upload.jpg").suffix.lower() or ".jpg"
-    # Sanitise extension
     if suffix not in {".jpg", ".jpeg", ".png", ".bmp"}:
         suffix = ".jpg"
 
-    input_path = UPLOAD_DIR / f"{task_id}_input{suffix}"
-    output_path = OUTPUT_DIR / f"{task_id}_colorized{suffix}"
+    # Store initial state BEFORE returning so SSE poll never hits 404
+    task_store[task_id] = {"status": "queued", "progress": 0, "message": "Queued…"}
 
-    input_path.write_bytes(content)
-
-    img = cv2.imdecode(np.frombuffer(content, np.uint8), cv2.IMREAD_COLOR)
-    if img is None:
-        raise HTTPException(400, "Cannot decode image")
-
-    colorized = colorizer.colorize_frame(img)
-
-    if enhance:
-        _ensure_upscaler()
-        colorized = upscaler.upscale(colorized)
-
-    ok, buf = cv2.imencode(suffix, colorized)
-    if not ok:
-        raise HTTPException(500, "Failed to encode colorized image")
-    output_path.write_bytes(buf.tobytes())
-
-    return {
-        "task_id": task_id,
-        "download_url": f"/api/download/{output_path.name}",
-        "enhanced": enhance,
-    }
+    background_tasks.add_task(_process_image_task, task_id, content, suffix, enhance)
+    return {"task_id": task_id}
 
 
 # ── Video colorization ────────────────────────────────────────────────────────
@@ -194,6 +174,60 @@ async def download_file(filename: str):
     if not path.exists():
         raise HTTPException(404, "File not found")
     return FileResponse(str(path), filename=filename)
+
+
+# ── Background image processor ────────────────────────────────────────────────
+async def _process_image_task(task_id: str, content: bytes, suffix: str, enhance: bool):
+    output_path = OUTPUT_DIR / f"{task_id}_colorized{suffix}"
+    loop = asyncio.get_event_loop()
+    try:
+        task_store[task_id] = {"status": "processing", "progress": 5, "message": "Decoding image…"}
+
+        img = cv2.imdecode(np.frombuffer(content, np.uint8), cv2.IMREAD_COLOR)
+        if img is None:
+            raise ValueError("Cannot decode image")
+
+        task_store[task_id] = {"status": "processing", "progress": 10, "message": "Colorizing…"}
+        # Run blocking colorization in thread so the event loop stays free
+        colorized = await loop.run_in_executor(None, colorizer.colorize_frame, img)
+
+        if enhance:
+            _ensure_upscaler()
+
+            def _upscale_with_progress() -> np.ndarray:
+                def _cb(tile_pct: int) -> None:
+                    overall = 40 + int(tile_pct * 0.55)  # maps 0→100 to 40→95
+                    task_store[task_id] = {
+                        "status": "processing",
+                        "progress": overall,
+                        "message": f"Enhancing resolution… {tile_pct}%",
+                    }
+                return upscaler.upscale(colorized, progress_cb=_cb)
+
+            task_store[task_id] = {
+                "status": "processing",
+                "progress": 40,
+                "message": "Starting super-resolution…",
+            }
+            colorized = await loop.run_in_executor(None, _upscale_with_progress)
+        else:
+            task_store[task_id] = {"status": "processing", "progress": 80, "message": "Saving…"}
+
+        task_store[task_id] = {"status": "processing", "progress": 96, "message": "Encoding output…"}
+        ok, buf = cv2.imencode(suffix, colorized)
+        if not ok:
+            raise ValueError("Failed to encode image")
+        output_path.write_bytes(buf.tobytes())
+
+        task_store[task_id] = {
+            "status": "completed",
+            "progress": 100,
+            "message": "Done!",
+            "download_url": f"/api/download/{output_path.name}",
+        }
+    except Exception as exc:
+        logger.exception("Image processing failed: %s", exc)
+        task_store[task_id] = {"status": "failed", "progress": 0, "message": str(exc)}
 
 
 # ── Background video processor ────────────────────────────────────────────────
