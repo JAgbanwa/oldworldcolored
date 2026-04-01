@@ -77,7 +77,7 @@ export default function UploadZone({ mode, onFile, disabled }) {
         className={`
           relative flex min-h-[260px] cursor-pointer flex-col items-center justify-center
           rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-300
-          ${isDragActive ? "drop-active" : "border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/30"}
+          ${isDragActive ? "drop-active" : "dark:border-zinc-700 border-zinc-300 dark:hover:border-zinc-500 hover:border-zinc-400 dark:hover:bg-zinc-800/30 hover:bg-zinc-100/50"}
           ${disabled ? "pointer-events-none opacity-50" : ""}
         `}
       >
@@ -113,7 +113,7 @@ export default function UploadZone({ mode, onFile, disabled }) {
               >
                 <X className="h-4 w-4" />
               </button>
-              <p className="mt-3 text-sm text-zinc-400">
+              <p className="mt-3 text-sm dark:text-zinc-400 text-zinc-500">
                 Click or drag to replace
               </p>
             </motion.div>
@@ -129,7 +129,7 @@ export default function UploadZone({ mode, onFile, disabled }) {
                 className={`rounded-2xl p-5 ${
                   isDragActive
                     ? "bg-gold-500/20 text-gold-400"
-                    : "bg-zinc-800 text-zinc-400"
+                    : "dark:bg-zinc-800 bg-zinc-100 dark:text-zinc-400 text-zinc-500"
                 } transition-all duration-300`}
               >
                 {isImage ? (
@@ -139,12 +139,12 @@ export default function UploadZone({ mode, onFile, disabled }) {
                 )}
               </div>
               <div>
-                <p className="text-base font-semibold text-zinc-200">
+                <p className="text-base font-semibold dark:text-zinc-200 text-zinc-700">
                   {isDragActive
                     ? "Drop it here!"
                     : `Drag & drop your ${isImage ? "photo" : "video"} here`}
                 </p>
-                <p className="mt-1 text-sm text-zinc-500">
+                <p className="mt-1 text-sm dark:text-zinc-500 text-zinc-400">
                   or{" "}
                   <span className="text-gold-400 underline underline-offset-2">
                     click to browse
@@ -158,12 +158,12 @@ export default function UploadZone({ mode, onFile, disabled }) {
                 ).map((ext) => (
                   <span
                     key={ext}
-                    className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs font-mono text-zinc-400"
+                    className="rounded-md dark:bg-zinc-800 bg-zinc-100 px-2 py-0.5 text-xs font-mono dark:text-zinc-400 text-zinc-500"
                   >
                     {ext}
                   </span>
                 ))}
-                <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500">
+                <span className="rounded-md dark:bg-zinc-800 bg-zinc-100 px-2 py-0.5 text-xs dark:text-zinc-500 text-zinc-400">
                   max {isImage ? "20MB" : "500MB"}
                 </span>
               </div>

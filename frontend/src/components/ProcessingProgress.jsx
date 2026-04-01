@@ -18,7 +18,7 @@ export default function ProcessingProgress({ status, progress, message }) {
       className={`rounded-2xl border p-6 ${
         isFailed
           ? "border-red-800/40 bg-red-950/30"
-          : "border-zinc-700/50 bg-zinc-900/70"
+          : "dark:border-zinc-700/50 border-zinc-200 dark:bg-zinc-900/70 bg-white/80"
       }`}
     >
       {/* Header */}
@@ -39,7 +39,7 @@ export default function ProcessingProgress({ status, progress, message }) {
             {status === "completed" && "Done!"}
             {status === "failed" && "Processing failed"}
           </p>
-          <p className="mt-0.5 text-sm text-zinc-400">{message}</p>
+          <p className="mt-0.5 text-sm dark:text-zinc-400 text-zinc-500">{message}</p>
         </div>
         <span className="ml-auto text-2xl font-bold tabular-nums text-gold-400">
           {progress}%
@@ -47,7 +47,7 @@ export default function ProcessingProgress({ status, progress, message }) {
       </div>
 
       {/* Progress bar */}
-      <div className="h-3 w-full overflow-hidden rounded-full bg-zinc-800">
+      <div className="h-3 w-full overflow-hidden rounded-full dark:bg-zinc-800 bg-zinc-200">
         <motion.div
           className={`h-full rounded-full ${barColor}`}
           initial={{ width: 0 }}
