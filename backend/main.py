@@ -18,11 +18,12 @@ from typing import Optional
 
 import cv2
 import numpy as np
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 
 from colorizer import Colorizer
+from upscaler import Upscaler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # ── Globals ───────────────────────────────────────────────────────────────────
 colorizer: Optional[Colorizer] = None
+upscaler: Optional[Upscaler] = None
 task_store: dict = {}  # task_id → {"status", "progress", "message", "download_url"}
 
 SAFE_FILENAME_RE = re.compile(r"^[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|bmp|mp4)$")
@@ -79,7 +81,10 @@ async def health():
 
 # ── Image colorization ────────────────────────────────────────────────────────
 @app.post("/api/colorize/image")
-async def colorize_image(file: UploadFile = File(...)):
+async def colorize_image(
+    file: UploadFile = File(...),
+    enhance: bool = Form(False),
+):
     _require_model()
 
     if file.content_type not in ALLOWED_IMAGE_TYPES:
@@ -106,6 +111,10 @@ async def colorize_image(file: UploadFile = File(...)):
 
     colorized = colorizer.colorize_frame(img)
 
+    if enhance:
+        _ensure_upscaler()
+        colorized = upscaler.upscale(colorized)
+
     ok, buf = cv2.imencode(suffix, colorized)
     if not ok:
         raise HTTPException(500, "Failed to encode colorized image")
@@ -114,6 +123,7 @@ async def colorize_image(file: UploadFile = File(...)):
     return {
         "task_id": task_id,
         "download_url": f"/api/download/{output_path.name}",
+        "enhanced": enhance,
     }
 
 
@@ -122,6 +132,7 @@ async def colorize_image(file: UploadFile = File(...)):
 async def colorize_video(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    enhance: bool = Form(False),
 ):
     _require_model()
 
@@ -148,7 +159,7 @@ async def colorize_video(
     }
 
     background_tasks.add_task(
-        _process_video_task, task_id, str(input_path), str(output_path)
+        _process_video_task, task_id, str(input_path), str(output_path), enhance
     )
     return {"task_id": task_id}
 
@@ -186,7 +197,7 @@ async def download_file(filename: str):
 
 
 # ── Background video processor ────────────────────────────────────────────────
-async def _process_video_task(task_id: str, input_path: str, output_path: str):
+async def _process_video_task(task_id: str, input_path: str, output_path: str, enhance: bool = False):
     try:
         task_store[task_id] = {
             "status": "processing",
@@ -203,15 +214,24 @@ async def _process_video_task(task_id: str, input_path: str, output_path: str):
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+        if enhance:
+            _ensure_upscaler()
+
+        scale = upscaler.SCALE if enhance else 1
+        out_w, out_h = w * scale, h * scale
+
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        out = cv2.VideoWriter(output_path, fourcc, fps, (w, h))
+        out = cv2.VideoWriter(output_path, fourcc, fps, (out_w, out_h))
 
         processed = 0
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
-            out.write(colorizer.colorize_frame(frame))
+            colorized = colorizer.colorize_frame(frame)
+            if enhance:
+                colorized = upscaler.upscale(colorized)
+            out.write(colorized)
             processed += 1
             pct = min(99, int(processed / total * 100))
             task_store[task_id] = {
@@ -250,3 +270,9 @@ def _require_model():
                 "Model weights are still loading. Please wait a moment and retry."
             ),
         )
+
+
+def _ensure_upscaler():
+    global upscaler
+    if upscaler is None:
+        upscaler = Upscaler()
