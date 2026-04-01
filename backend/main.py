@@ -66,9 +66,9 @@ async def startup_event():
     global colorizer
     try:
         colorizer = Colorizer()
-    except FileNotFoundError as exc:
+    except Exception as exc:
         logger.warning("Colorizer not ready – %s", exc)
-        logger.warning("Run `python download_models.py` to fetch model weights.")
+        logger.warning("The model will be downloaded on the first request.")
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -247,7 +247,6 @@ def _require_model():
         raise HTTPException(
             503,
             detail=(
-                "Model weights not loaded. "
-                "Run `python download_models.py` in the backend directory."
+                "Model weights are still loading. Please wait a moment and retry."
             ),
         )
