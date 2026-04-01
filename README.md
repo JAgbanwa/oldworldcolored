@@ -5,6 +5,7 @@
 [![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/frontend-React%2018-61DAFB?logo=react)](https://react.dev/)
 [![PyTorch](https://img.shields.io/badge/AI-PyTorch-EE4C2C?logo=pytorch)](https://pytorch.org/)
+
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
