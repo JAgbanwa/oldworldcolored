@@ -184,22 +184,22 @@ export default function App() {
           transition={{ duration: 0.5 }}
           className="mb-10 text-center"
         >
-          <h2 className="font-display text-4xl font-bold leading-tight text-white sm:text-5xl">
+          <h2 className="font-display text-4xl font-bold leading-tight dark:text-white text-zinc-900 sm:text-5xl">
             Bring history{" "}
             <span className="bg-gradient-to-r from-sepia-400 via-gold-400 to-amber-300 bg-clip-text text-transparent">
               to life
             </span>
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base text-zinc-400">
+          <p className="mx-auto mt-4 max-w-xl text-base dark:text-zinc-400 text-zinc-500">
             Upload a black-and-white photo or video and watch our AI breathe
             color into every pixel using{" "}
-            <span className="text-zinc-300">deep learning</span>.
+            <span className="dark:text-zinc-300 text-zinc-700">deep learning</span>.
           </p>
         </motion.div>
 
         {/* Mode tabs */}
         <div className="mb-6 flex justify-center">
-          <div className="inline-flex rounded-xl border border-zinc-800 bg-zinc-900 p-1">
+          <div className="inline-flex rounded-xl border dark:border-zinc-800 border-zinc-300 dark:bg-zinc-900 bg-white p-1 shadow-sm">
             {[
               { id: "image", label: "Photo", Icon: ImageIcon },
               { id: "video", label: "Video", Icon: Film },
@@ -213,7 +213,7 @@ export default function App() {
                   ${
                     mode === id
                       ? "bg-gradient-to-r from-sepia-600 to-gold-600 text-white shadow-md"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      : "dark:text-zinc-400 text-zinc-500 dark:hover:text-zinc-200 hover:text-zinc-800"
                   }
                   disabled:opacity-50 disabled:cursor-not-allowed
                 `}
@@ -233,7 +233,7 @@ export default function App() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-xl backdrop-blur-sm"
+              className="rounded-2xl border dark:border-zinc-800 border-zinc-200 dark:bg-zinc-900/60 bg-white/80 p-6 shadow-xl backdrop-blur-sm"
             >
               <UploadZone mode={mode} onFile={handleFile} disabled={isProcessing} />
 
@@ -275,7 +275,7 @@ export default function App() {
                 message={progress.message}
               />
               {mode === "video" && (
-                <p className="mt-3 text-center text-xs text-zinc-600">
+                <p className="mt-3 text-center text-xs dark:text-zinc-600 text-zinc-400">
                   Video colorization may take a few minutes depending on length.
                 </p>
               )}
@@ -292,11 +292,11 @@ export default function App() {
               className="rounded-2xl border border-red-800/40 bg-red-950/30 p-6 text-center"
             >
               <AlertCircle className="mx-auto mb-3 h-10 w-10 text-red-400" />
-              <p className="font-semibold text-red-300">Something went wrong</p>
+              <p className="font-semibold text-red-400 dark:text-red-300">Something went wrong</p>
               <p className="mt-1 text-sm text-red-500">{errorMsg}</p>
               <button
                 onClick={reset}
-                className="mt-4 flex items-center gap-2 mx-auto rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:text-white hover:border-zinc-500 transition"
+                className="mt-4 flex items-center gap-2 mx-auto rounded-lg border dark:border-zinc-700 border-zinc-300 px-4 py-2 text-sm dark:text-zinc-300 text-zinc-600 dark:hover:text-white hover:text-zinc-900 dark:hover:border-zinc-500 hover:border-zinc-500 transition"
               >
                 <RotateCcw className="h-4 w-4" /> Try again
               </button>
@@ -338,7 +338,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={reset}
-                  className="flex items-center gap-2 rounded-xl border border-zinc-700 px-6 py-2.5 text-sm text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                  className="flex items-center gap-2 rounded-xl border dark:border-zinc-700 border-zinc-300 px-6 py-2.5 text-sm dark:text-zinc-300 text-zinc-600 transition dark:hover:border-zinc-500 hover:border-zinc-400 dark:hover:text-white hover:text-zinc-900"
                 >
                   <RotateCcw className="h-4 w-4" /> Colorize another
                 </button>
