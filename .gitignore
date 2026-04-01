@@ -1,0 +1,43 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ── Model files (large binary, download via download_models.py) ───────────────
+backend/models/*.caffemodel
+backend/models/*.prototxt
+backend/models/*.npy
+
+# ── Runtime dirs ─────────────────────────────────────────────────────────────
+backend/uploads/
+backend/outputs/
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# ── Environment ───────────────────────────────────────────────────────────────
+.env
+.env.*
