@@ -179,7 +179,7 @@ async def download_file(filename: str):
 # ── Background image processor ────────────────────────────────────────────────
 async def _process_image_task(task_id: str, content: bytes, suffix: str, enhance: bool):
     output_path = OUTPUT_DIR / f"{task_id}_colorized{suffix}"
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         task_store[task_id] = {"status": "processing", "progress": 5, "message": "Decoding image…"}
 
@@ -203,6 +203,17 @@ async def _process_image_task(task_id: str, content: bytes, suffix: str, enhance
                         "message": f"Enhancing resolution… {tile_pct}%",
                     }
                 return upscaler.upscale(colorized, progress_cb=_cb)
+
+            # Cap image size before ESRGAN — prevents OOM on large photos.
+            # A 1024 px input → sharp 4096 px output (~16 MP). Larger wastes RAM.
+            h_c, w_c = colorized.shape[:2]
+            if max(h_c, w_c) > 1024:
+                scale_f = 1024 / max(h_c, w_c)
+                colorized = cv2.resize(
+                    colorized,
+                    (int(w_c * scale_f), int(h_c * scale_f)),
+                    interpolation=cv2.INTER_LANCZOS4,
+                )
 
             task_store[task_id] = {
                 "status": "processing",

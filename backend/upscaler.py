@@ -137,7 +137,7 @@ class Upscaler:
     """
 
     SCALE = 4
-    _TILE = 512   # larger tiles → fewer forward passes
+    _TILE = 256   # 256 px keeps per-tile peak RAM under ~200 MB on CPU
     _PAD = 16
 
     def __init__(self) -> None:
@@ -211,6 +211,7 @@ class Upscaler:
                 out[:, :, y1 * scale : y2 * scale, x1 * scale : x2 * scale] = (
                     sr[:, :, ty1:ty2, tx1:tx2]
                 )
+                del sr, patch  # free tile memory immediately
 
                 done += 1
                 if progress_cb:
