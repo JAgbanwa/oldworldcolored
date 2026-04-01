@@ -51,7 +51,7 @@ task_store: dict = {}  # task_id → {"status", "progress", "message", "download
 
 SAFE_FILENAME_RE = re.compile(r"^[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|bmp|mp4)$")
 
-MAX_IMAGE_BYTES = 20 * 1024 * 1024   # 20 MB
+MAX_IMAGE_BYTES = 50 * 1024 * 1024   # 50 MB
 MAX_VIDEO_BYTES = 500 * 1024 * 1024  # 500 MB
 
 ALLOWED_IMAGE_TYPES = {
@@ -92,7 +92,7 @@ async def colorize_image(
 
     content = await file.read()
     if len(content) > MAX_IMAGE_BYTES:
-        raise HTTPException(413, "Image exceeds 20 MB limit")
+        raise HTTPException(413, "Image exceeds 50 MB limit")
 
     task_id = str(uuid.uuid4())
     suffix = Path(file.filename or "upload.jpg").suffix.lower() or ".jpg"

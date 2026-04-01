@@ -164,7 +164,7 @@ export default function UploadZone({ mode, onFile, disabled }) {
                   </span>
                 ))}
                 <span className="rounded-md dark:bg-zinc-800 bg-zinc-100 px-2 py-0.5 text-xs dark:text-zinc-500 text-zinc-400">
-                  max {isImage ? "20MB" : "500MB"}
+                  max {isImage ? "50MB" : "500MB"}
                 </span>
               </div>
             </motion.div>
